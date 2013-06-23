@@ -30,6 +30,8 @@ We will have three fields all exposed from the one table.
 ```SQL
 CREATE DATABASE dbfs_test;
 
+USE DATABASE dbfs_test;
+
 CREATE TABLE webpage_template (
 	id INT AUTO_INCREMENT PRIMARY KEY,
 	label CHAR(255) NOT NULL,
@@ -45,12 +47,12 @@ INSERT INTO webpage_template (
 	js_content, 
 	html_content 
 ) VALUES ( 
-	"Home"
+	"Home",
 	"h1 {\n\tcolor: red;\n}",
 	"alert( 'Home page loaded' )",
 	"<html>\n  <head><title>Home</title>\n  <body>\n  <h1>Home</h1>\n  </body>\n</html>"
 ), (
-	"About"
+	"About",
 	"h1 {\n\tcolor: green;\n}",
 	"alert( 'About page loaded' )",
 	"<html>\n  <head><title>About</title>\n  <body>\n  <h1>About</h1>\n  </body>\n</html>"
