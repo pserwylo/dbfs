@@ -270,7 +270,20 @@ class Server {
         return new AllDatabasesDirectory( $this->db() );
     }
 
+    public function auth() {
+        $auth = new \Sabre\HTTP\BasicAuth();
+        $result = $auth->getUserPass();
+        if ( !$result || $result[0]!= Config::get()->loginUsername() || $result[1] != Config::get()->loginPassword() ) {
+            $auth->requireLogin();
+            echo "Authentication required\n";
+            die();
+        }
+    }
+
     public function run() {
+
+        $this->auth();
+
         $server = new \Sabre\DAV\Server( $this->root() );
         $server->exec();
     }

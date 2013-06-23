@@ -10,10 +10,10 @@ This allows you to edit values from the database directly in your favourite edit
 
 # TODO
 
+* Wildcard database for folders, so that if their table is in any database, then it can be exposed. Also allow wildcards in table names, such as "*_articles" which would match "news_articles" and "blog_articles".
 * Currently I presume we are using a MySQL database, because I append ';dbname=...' to the DSN for the PDO constructor.
 * Validate all of the config values for folders and return null if invalid (after logging a message).
-* Authentication using HTTP realm authentication.
-* TODO: Page things into folders (e.g. "Row 1-100") if there is too many results.
+* Allow people to configure the authentication mechanism (e.g. Basic/Digest/LDAP)
 
 # Example
 
