@@ -64,6 +64,70 @@ abstract class DbDavFile extends Sabre\DAV\File {
 
 }
 
+/**
+ * Exposes two children:
+ * One child which is the fields in this table, and another which is the rows in this table.
+ */
+class TableDirectory extends DbDavDirectory {
+
+    private $tableName;
+
+    public function __construct( $tableName, PDO $db ) {
+        parent::__construct( $db );
+        $this->tableName = $tableName;
+    }
+
+    public function getChildren() {
+        return array(
+            new AllTableRowsDirectory( $this->tableName, $this->db() ),
+            new AllTableFieldsDirectory( $this->tableName, $this->db() ),
+        );
+    }
+
+    public function getName() {
+        return $this->tableName;
+    }
+}
+
+/**
+ * Lists all the tables in the database.
+ */
+class AllDatabaseTablesDirectory extends DbDavDirectory {
+
+    private $tables = null;
+
+    public function __construct( PDO $db ) {
+        parent::__construct( $db );
+    }
+
+    /**
+     * @return TableDirectory[]
+     */
+    private function tables() {
+        if ( $this->tables == null ) {
+            $this->tables = array();
+
+            $result = $this->db()->prepare( "SHOW TABLES;" );
+            $result->execute();
+            $rows = $result->fetchAll( PDO::FETCH_ASSOC );
+            $tables = array();
+            foreach( $rows as $row ) {
+                $tableName = array_pop( $row );
+                $tables[] = new TableDirectory( $tableName, $this->db() );
+            }
+        }
+        return $this->tables;
+    }
+
+    public function getChildren() {
+        return $this->tables();
+    }
+
+    public function getName()  {
+        return "All Tables";
+    }
+}
+
 class CustomFile extends DbDavFile {
 
     private $folderConfig;
@@ -246,13 +310,189 @@ class DatabaseDirectory extends LazyDbDavDirectory {
     }
 
     public function getChildren() {
-        return $this->folders();
+        return array_merge(
+            array( new AllDatabaseTablesDirectory( $this->db() ) ),
+            $this->folders()
+        );
     }
 
     public function getName() {
         return $this->databaseName();
     }
 
+}
+
+/**
+ * Lists all the rows in a table.
+ */
+class AllTableRowsDirectory extends DbDavDirectory {
+
+    private $rows = null;
+    private $tableName;
+
+    public function __construct( $tableName, PDO $db ) {
+        parent::__construct( $db );
+        $this->tableName = $tableName;
+    }
+
+    private function primaryKey() {
+        $result = $this->db()->prepare( "SHOW FIELDS FROM $this->tableName;" );
+        $result->execute();
+        $rows = $result->fetchAll( PDO::FETCH_ASSOC );
+        $primaryKey = array();
+        foreach( $rows as $field ) {
+            if ( $field['Key'] == "PRI" ) {
+                $primaryKey[] = $field['Field'];
+            }
+        }
+        return $primaryKey;
+    }
+
+    private function rows() {
+        if ( $this->rows == null ) {
+            $primaryKey = $this->primaryKey();
+
+            $result = $this->db()->prepare( "SELECT * FROM $this->tableName;" );
+            $result->execute();
+            $rows = $result->fetchAll( PDO::FETCH_ASSOC );
+
+            $this->rows = array();
+            foreach( $rows as $row ) {
+                $this->rows[] = new RowDirectory( $this->tableName, $primaryKey, $row, $this->db() );
+            }
+        };
+        return $this->rows;
+    }
+
+    public function getChildren() {
+        return $this->rows();
+    }
+
+    /**
+     * Returns the name of the node.
+     *
+     * This is used to generate the url.
+     *
+     * @return string
+     */
+    public function getName()  {
+        return "All Rows";
+    }
+}
+
+/**
+ * A value is the value for a particular column at a given row.
+ */
+abstract class DirectoryWithValues extends DbDavDirectory {
+
+
+
+}
+
+/**
+ * Lists all of the items in a row.
+ */
+class RowDirectory extends DirectoryWithValues {
+
+    private $primaryKey;
+    private $row;
+    private $tableName;
+
+    public function __construct( $tableName, array $primaryKey, array $row, PDO $db ) {
+        parent::__construct( $db );
+        $this->primaryKey = $primaryKey;
+        $this->row        = $row;
+        $this->tableName  = $tableName;
+    }
+
+    public function getChildren() {
+        return array();
+    }
+
+    /**
+     * Returns the name of the node.
+     *
+     * This is used to generate the url.
+     *
+     * @return string
+     */
+    public function getName() {
+        $primaryValues = array();
+        foreach( $this->primaryKey as $keyField ) {
+            $primaryValues[] = $this->row[ $keyField ];
+        }
+        return join( "-", $primaryValues );
+    }
+}
+
+/**
+ * Lists all of the items in a row.
+ */
+class FieldDirectory extends DirectoryWithValues {
+
+    private $tableName;
+    private $fieldName;
+
+    public function __construct( $tableName, $fieldName, PDO $db ) {
+        parent::__construct( $db );
+        $this->tableName = $tableName;
+        $this->fieldName = $fieldName;
+    }
+
+    public function getChildren() {
+        return array();
+    }
+
+    public function getName() {
+        return $this->fieldName;
+    }
+}
+
+/**
+ * Lists all the fields in a table.
+ */
+class AllTableFieldsDirectory extends DbDavDirectory {
+
+    private $fields = null;
+    private $tableName;
+
+    public function __construct( $tableName, PDO $db ) {
+        parent::__construct( $db );
+        $this->tableName = $tableName;
+    }
+
+    /**
+     * @return FieldDirectory[]
+     */
+    private function fields() {
+        if ( $this->fields == null ) {
+            $result = $this->db()->prepare( "SHOW FIELDS FROM $this->tableName;" );
+            $result->execute();
+            $rows = $result->fetchAll( PDO::FETCH_ASSOC );
+
+            $this->fields = array();
+            foreach( $rows as $field ) {
+                $this->fields[] = new FieldDirectory( $this->tableName, $field['Field'], $this->db() );
+            }
+        };
+        return $this->fields;
+    }
+
+    public function getChildren() {
+        return $this->fields();
+    }
+
+    /**
+     * Returns the name of the node.
+     *
+     * This is used to generate the url.
+     *
+     * @return string
+     */
+    function getName()
+    {
+        return "All Fields";
+    }
 }
 
 class Server {
