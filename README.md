@@ -8,17 +8,21 @@ Many website frameworks store templates (HTML/JS/CSS/other?) as values in a data
 
 This allows you to edit values from the database directly in your favourite editor, and will save them back into the databse when you save the file.
 
-# What's it like?
-
-Here is a shell session that shows how it would look to access the database values as files (using the example .config file) and the database shown below.
+# Demo
 
 ### Shell session accessing files
 
+Here is a shell session that shows how it would look to access the database values as files (using the example .config file) and the database shown below.
+
 ```bash
+
 $ cat /etc/fstab
+
 http://localhost:8000 /mnt/dbfs davfs rw,user,noauto 0 0
 
+
 $ mount /mnt/dbfs
+
 Please enter the username to authenticate with server
 http://localhost:8000 or hit enter for none.
   Username: test
@@ -27,18 +31,26 @@ http://localhost:8000 or hit enter for none.
   Password:  
 /sbin/mount.davfs: warning: the server does not support locks
 
+
 $ ls /mnt/dbfs/
+
 dbfs_test
 
+
 $ ls /mnt/dbfs/dbfs_test/
+
 CSS                               webpage_template - HTML
 newsletter_template - HTML        webpage_template - JavaScript
 newsletter_template - JavaScript
 
+
 $ ls /mnt/dbfs/dbfs_test/CSS/
+
 About.css  Contact.css  Home.css
 
+
 $ cat /mnt/dbfs/dbfs_test/CSS/About.css
+
 h1 {
 	color: green;
 }
@@ -47,21 +59,29 @@ body {
 
 }
 
+
 $ ls "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+
 Registration complete.html
 
+
 $ cat "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+
 Your email has been registered.
 
-$ echo "<p>Your registration is complete.</p>" > "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+
+$ echo "<p>Your registration is complete.</p>" > \
+       "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+
 
 $ cat "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+
 <p>Your registration is complete.</p>
 ```
 
-The above filesystem layout was provided from the following database:
+### Database for above session
 
-### Shell session accessing files
+The above filesystem layout was provided from the following database:
 
 ```sql
 mysql> SHOW TABLES;
@@ -102,13 +122,13 @@ ql> SELECT html_content FROM newsletter_template;
 * Validate all of the config values for folders and return null if invalid (after logging a message).
 * Allow people to configure the authentication mechanism (e.g. Basic/Digest/LDAP)
 
-# Example
+# Other Examples
 
-## Test Config File
+## Example Config File
 
 The file dbfs.config contains documentation and examples for each of the config directives.
 
-## Test Database
+## Example Database
 
 Below is the SQL to create a test database, that should work well with the example dbfs.config that comes with dbfs.
 
@@ -151,7 +171,7 @@ INSERT INTO webpage_template (
 );
 ```
 
-## Test Server
+## Example Server
 
 PHP versions 5.4 and up have a built in webserver, that you can switch on by running the commandline php executable with the "-S" parameter.
 

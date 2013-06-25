@@ -17,7 +17,7 @@
 
 require_once( "lib/autoload.php" );
 require_once( "Config.php"  );
-require_once( "db-dav.php"  );
+require_once( "dbfs.php"  );
 
 $config = new Config( "/home/pete/code/dbfs/dbfs.config" );
 Config::set( $config );
