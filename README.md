@@ -1,6 +1,8 @@
 # What is dbfs?
 
-dbfs exposes values from a database (where a value is a particular rows value for a given field) to your filesystem as files.
+dbfs exposes values from a database as files.
+
+![Demo](https://raw.github.com/pserwylo/dbfs/master/dbfs-example.png)
 
 # Why?
 
