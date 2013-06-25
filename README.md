@@ -10,6 +10,10 @@ This allows you to edit values from the database directly in your favourite edit
 
 # What's it like?
 
+Here is a shell session that shows how it would look to access the database values as files (using the example .config file) and the database shown below.
+
+### Shell session accessing files
+
 ```bash
 $ cat /etc/fstab
 http://localhost:8000 /mnt/dbfs davfs rw,user,noauto 0 0
@@ -55,18 +59,11 @@ $ cat "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
 <p>Your registration is complete.</p>
 ```
 
+The above filesystem layout was provided from the following database:
+
+### Shell session accessing files
+
 ```sql
-mysql> SHOW DATABASES;
-+----------------------+
-| Database (dbfs_test) |
-+----------------------+
-| dbfs_test            |
-+----------------------+
-1 row in set (0.00 sec)
-
-mysql> USE dbfs_test;
-Database changeid
-
 mysql> SHOW TABLES;
 +---------------------+
 | Tables_in_dbfs_test |
@@ -92,8 +89,7 @@ ql> SELECT html_content FROM newsletter_template;
 +----------------------------------------+
 | html_content                           |
 +----------------------------------------+
-| <p>Your registration is complete.</p>
- |
+| <p>Your registration is complete.</p>  |
 +----------------------------------------+
 1 row in set (0.00 sec)
 ```
