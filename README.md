@@ -100,6 +100,7 @@ ql> SELECT html_content FROM newsletter_template;
 
 # TODO
 
+* Externalise SabreDAV dependency
 * Wildcard database for folders, so that if their table is in any database, then it can be exposed. Also allow wildcards in table names, such as "*_articles" which would match "news_articles" and "blog_articles".
 * Currently I presume we are using a MySQL database, because I append ';dbname=...' to the DSN for the PDO constructor.
 * Validate all of the config values for folders and return null if invalid (after logging a message).
