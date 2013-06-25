@@ -9,18 +9,22 @@ class Config {
     private $dbUsername;
     private $dbPassword;
 
+    private $foldersWildcardName;
+
     public function __construct( $configFile ) {
         $config = parse_ini_file( $configFile, true );
         if ( $config === false ) {
             throw new Exception( "Config file '$configFile' not found. Cannot start dbfs." );
         }
 
-        $this->loginUsername = $config['user']['username'];
-        $this->loginPassword = $config['user']['password'];
+        $this->loginUsername = $config['login']['username'];
+        $this->loginPassword = $config['login']['password'];
 
         $this->dbDsn      = trim( $config['database']['dsn'], "; \t" );
         $this->dbUsername = $config['database']['username'];
         $this->dbPassword = $config['database']['password'];
+
+        $this->foldersWildcardName = $config['folders']['wildcardFolderName'];
 
         // All remaining entries are tables which have been defined
         foreach( $config as $name => $values ) {
@@ -29,6 +33,10 @@ class Config {
                 $this->folders[] = $folder;
             }
         }
+    }
+
+    public function foldersWildcardName() {
+        return $this->foldersWildcardName;
     }
 
     public function dbDsn() {

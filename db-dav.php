@@ -75,6 +75,10 @@ class CustomFile extends DbDavFile {
         $this->fieldValues = $fieldValues;
     }
 
+    protected function tableName() {
+        return $this->folderConfig->table();
+    }
+
     public function getName() {
         $name = $this->folderConfig->filename();
         foreach( $this->fieldValues as $field => $value ) {
@@ -104,7 +108,7 @@ class CustomFile extends DbDavFile {
 
         $sql = "
             SELECT $selectField
-            FROM " . $this->folderConfig->table() . "
+            FROM " . $this->tableName() . "
             WHERE
                 " . join( " AND ", $whereFields ) . ";";
         $result = $this->db()->prepare( $sql );
@@ -128,7 +132,7 @@ class CustomFile extends DbDavFile {
         }
 
         $sql = "
-            UPDATE " . $this->folderConfig->table() . "
+            UPDATE " . $this->tableName() . "
             SET " . $this->folderConfig->column() . " = :$putParam
             WHERE
                 " . join( " AND ", $whereFields ) . ";";
@@ -145,7 +149,43 @@ class CustomFile extends DbDavFile {
 
 }
 
+class WildcardCustomFile extends CustomFile {
+
+    private $tableName;
+
+    public function __construct( array $row, $tableName, FolderConfig $config, PDO $db ) {
+        parent::__construct( $row, $config, $db );
+        $this->tableName = $tableName;
+    }
+
+    protected function tableName() {
+        return $this->tableName;
+    }
+
+}
+
 class CustomFolderDirectory extends DbDavDirectory {
+
+    /**
+     * @param FolderConfig $config
+     * @param PDO $db
+     * @return CustomFolderDirectory[]
+     */
+    public static function create( FolderConfig $config, PDO $db ) {
+        $folders = array();
+        if ( strstr( $config->table(), "*" ) === false ) {
+            $folders[] = new CustomFolderDirectory( $config, $db );
+        } else {
+            $result = $db->prepare( "SHOW TABLES LIKE :table" );
+            $result->execute( array( 'table' => str_replace( "*", "%", $config->table() ) ) );
+            $rows = $result->fetchAll( PDO::FETCH_ASSOC );
+            foreach( $rows as $row ) {
+                $table = array_pop( $row );
+                $folders[] = new WildcardCustomFolderDirectory( $table, $config, $db );
+            }
+        }
+        return $folders;
+    }
 
     private $folderConfig;
     private $children = null;
@@ -153,6 +193,14 @@ class CustomFolderDirectory extends DbDavDirectory {
     public function __construct( FolderConfig $config, PDO $db ) {
         parent::__construct( $db );
         $this->folderConfig = $config;
+    }
+
+    protected function tableName() {
+        return $this->folderConfig->table();
+    }
+
+    protected final function folderConfig() {
+        return $this->folderConfig;
     }
 
     private function children() {
@@ -169,26 +217,58 @@ class CustomFolderDirectory extends DbDavDirectory {
             }
 
             $fields = join( ", ", $fieldsToSelect );
-            $table  = $this->folderConfig->table();
+            $table  = $this->tableName();
             $sql    = "SELECT $fields FROM $table;";
 
             $result = $this->db()->prepare( $sql );
             $result->execute();
             $rows = $result->fetchAll( PDO::FETCH_ASSOC );
             foreach( $rows as $row ) {
-                $this->children[] = new CustomFile( $row, $this->folderConfig, $this->db() );
+                $this->children[] = $this->createChild( $row );
             }
         }
         return $this->children;
     }
 
-    public function getChildren() {
+    protected function createChild( array $row ) {
+        return new CustomFile( $row, $this->folderConfig, $this->db() );
+    }
+
+    public final function getChildren() {
         return $this->children();
     }
 
     public function getName() {
         return $this->folderConfig->name();
     }
+}
+
+class WildcardCustomFolderDirectory extends CustomFolderDirectory {
+
+    /** @var string */
+    private $tableName;
+
+    public function __construct( $tableName, FolderConfig $config, PDO $db ) {
+        parent::__construct( $config, $db );
+        $this->tableName = $tableName;
+    }
+
+    protected function tableName() {
+        return $this->tableName;
+    }
+
+    protected function createChild( array $row ) {
+        return new WildcardCustomFile( $row, $this->tableName(), $this->folderConfig(), $this->db() );
+    }
+
+    public function getName() {
+        $name     = parent::getName();
+        $realName = Config::get()->foldersWildcardName();
+        $realName = str_replace( '$folder', $name, $realName );
+        $realName = str_replace( '$table', $this->tableName(), $realName );
+        return $realName;
+    }
+
 }
 
 class AllDatabasesDirectory extends DbDavDirectory {
@@ -237,8 +317,14 @@ class DatabaseDirectory extends LazyDbDavDirectory {
         if ( $this->folders == null ) {
             $this->folders = array();
             foreach( Config::get()->folders() as $folder ) {
-                if ( !$folder->database() || $folder->database() == $this->databaseName() ) {
-                    $this->folders[] = new CustomFolderDirectory( $folder, $this->db() );
+                if (  !$folder->database()
+                    || $folder->database() == $this->databaseName()
+                    || $folder->database() == "*" ) {
+
+                    $foldersToAdd = CustomFolderDirectory::create( $folder, $this->db() );
+                    foreach( $foldersToAdd as $folderToAdd ) {
+                        $this->folders[] = $folderToAdd;
+                    }
                 }
             }
         }
