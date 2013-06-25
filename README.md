@@ -8,6 +8,96 @@ Many website frameworks store templates (HTML/JS/CSS/other?) as values in a data
 
 This allows you to edit values from the database directly in your favourite editor, and will save them back into the databse when you save the file.
 
+# What's it like?
+
+```bash
+$ cat /etc/fstab
+http://localhost:8000 /mnt/dbfs davfs rw,user,noauto 0 0
+
+$ mount /mnt/dbfs
+Please enter the username to authenticate with server
+http://localhost:8000 or hit enter for none.
+  Username: test
+Please enter the password to authenticate user test with server
+http://localhost:8000 or hit enter for none.
+  Password:  
+/sbin/mount.davfs: warning: the server does not support locks
+
+$ ls /mnt/dbfs/
+dbfs_test
+
+$ ls /mnt/dbfs/dbfs_test/
+CSS                               webpage_template - HTML
+newsletter_template - HTML        webpage_template - JavaScript
+newsletter_template - JavaScript
+
+$ ls /mnt/dbfs/dbfs_test/CSS/
+About.css  Contact.css  Home.css
+
+$ cat /mnt/dbfs/dbfs_test/CSS/About.css
+h1 {
+	color: green;
+}
+
+body {
+
+}
+
+$ ls "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+Registration complete.html
+
+$ cat "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+Your email has been registered.
+
+$ echo "<p>Your registration is complete.</p>" > "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+
+$ cat "/mnt/dbfs/dbfs_test/newsletter_template - HTML/"
+<p>Your registration is complete.</p>
+```
+
+```sql
+mysql> SHOW DATABASES;
++----------------------+
+| Database (dbfs_test) |
++----------------------+
+| dbfs_test            |
++----------------------+
+1 row in set (0.00 sec)
+
+mysql> USE dbfs_test;
+Database changeid
+
+mysql> SHOW TABLES;
++---------------------+
+| Tables_in_dbfs_test |
++---------------------+
+| newsletter_template |
+| webpage_template    |
++---------------------+
+2 rows in set (0.00 sec)
+
+mysql> SHOW FIELDS FROM newsletter_template;
++--------------+-----------+------+-----+-------------------+-----------------------------+
+| Field        | Type      | Null | Key | Default           | Extra                       |
++--------------+-----------+------+-----+-------------------+-----------------------------+
+| id           | int(11)   | NO   | PRI | NULL              | auto_increment              |
+| label        | char(255) | NO   |     | NULL              |                             |
+| modifiedDate | timestamp | NO   |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP |
+| css_content  | text      | YES  |     | NULL              |                             |
+| html_content | text      | YES  |     | NULL              |                             |
++--------------+-----------+------+-----+-------------------+-----------------------------+
+5 rows in set (0.14 sec)
+
+ql> SELECT html_content FROM newsletter_template;
++----------------------------------------+
+| html_content                           |
++----------------------------------------+
+| <p>Your registration is complete.</p>
+ |
++----------------------------------------+
+1 row in set (0.00 sec)
+```
+
 # TODO
 
 * Wildcard database for folders, so that if their table is in any database, then it can be exposed. Also allow wildcards in table names, such as "*_articles" which would match "news_articles" and "blog_articles".
